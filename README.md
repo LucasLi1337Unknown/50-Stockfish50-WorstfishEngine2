@@ -1,18 +1,21 @@
-# 50% Stockfish + 50% Worstfish
+# 50% Stockfish + 50% Worstfish — v6
 
-GitHub Pages version — no folders needed.
+This version fixes the move system.
 
-Put these files in the repository root:
-
+Repository root:
 - index.html
 - stockfish-18-lite-single.js
 - stockfish-18-lite-single.wasm
 - README.md (optional)
 
-The WASM file stays unchanged.
+No folders required.
 
-This version follows Stockfish.js 18's browser-worker convention and loads:
-`stockfish-18-lite-single.js#./stockfish-18-lite-single.wasm`
-
-The board is a fixed 8×8 CSS grid, so piece content cannot resize or distort squares.
-
+Changes in v6:
+- Stockfish WASM loader kept exactly as the working v5 version.
+- Chess legality is handled by chess.js instead of parsing Stockfish's `d` output.
+- Click-to-move works.
+- Drag-and-drop works.
+- Legal moves only.
+- Check/checkmate/draw handled by chess.js.
+- Fixed 8×8 CSS grid: pieces cannot resize squares.
+- Stockfish JS and WASM remain separate and the WASM does not need editing.
