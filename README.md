@@ -1,4 +1,4 @@
-# 50% Stockfish + 50% Worstfish v7
+# 50% Stockfish + 50% Worstfish v8
 
 Root files:
 - index.html
@@ -6,10 +6,8 @@ Root files:
 - stockfish-18-lite-single.wasm
 - README.md (optional)
 
-v7 changes:
-- Board uses native button squares.
-- A single board-level click handler handles all moves.
-- Selected-square debug text is visible.
-- chess.js handles legal moves.
-- Stockfish loader remains the same working loader.
+v8 change:
+- Default Worstfish probability changed from 50% to 5%.
+- You can still adjust the slider from 0% to 100%.
+- Board interaction and Stockfish loading are unchanged from the working v7.
 - Board remains a fixed 8×8 grid.
