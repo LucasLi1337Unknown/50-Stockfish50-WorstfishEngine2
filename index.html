@@ -5,369 +5,168 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>50% Stockfish + 50% Worstfish</title>
 <style>
-:root{
-  --bg:#0f1115;
-  --panel:#171a21;
-  --text:#f4f7fb;
-  --muted:#9ba7b4;
-  --good:#78e6a4;
-  --bad:#ff8da1;
-  --gold:#ffd166;
-}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:radial-gradient(circle at top,#1c2633,#0f1115 50%);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.wrap{max-width:1080px;margin:auto;padding:28px}
-h1{font-size:clamp(2rem,5vw,3.8rem);margin:.1em 0}
-.sub{color:var(--muted)}
-.grid{display:grid;grid-template-columns:minmax(320px,620px) minmax(270px,1fr);gap:24px;align-items:start}
-.card{background:#171a21;border:1px solid #303744;border-radius:22px;padding:18px;box-shadow:0 18px 55px #0006}
-
-/* IMPORTANT:
-   The board is a fixed 8x8 grid.
-   Every square is always exactly 1/8 of the board width and height.
-   Piece content can NEVER resize or distort a square. */
-.board-shell{
-  width:min(92vw,620px);
-  aspect-ratio:1 / 1;
-  margin:auto;
+body{margin:0;background:#101318;color:#f4f6f8;font-family:system-ui,-apple-system,sans-serif}
+main{max-width:1050px;margin:auto;padding:24px}
+h1{margin:0 0 6px}.muted{color:#aab3bd}
+.layout{display:grid;grid-template-columns:minmax(300px,620px) 1fr;gap:22px;align-items:start}
+.panel{background:#191e25;border:1px solid #303844;border-radius:18px;padding:16px}
+.board-wrap{width:min(90vw,600px);aspect-ratio:1/1;margin:auto}
+#board{
+ width:100%;height:100%;display:grid;
+ grid-template-columns:repeat(8,minmax(0,1fr));
+ grid-template-rows:repeat(8,minmax(0,1fr));
+ border:4px solid #3a424d;overflow:hidden;border-radius:10px
 }
-.board{
-  width:100%;
-  height:100%;
-  display:grid;
-  grid-template-columns:repeat(8,minmax(0,1fr));
-  grid-template-rows:repeat(8,minmax(0,1fr));
-  border:4px solid #333b47;
-  border-radius:15px;
-  overflow:hidden;
+.square{
+ width:100%;height:100%;min-width:0;min-height:0;
+ display:flex;align-items:center;justify-content:center;
+ overflow:hidden;position:relative;user-select:none;cursor:pointer;
+ font-size:clamp(27px,6vw,57px);line-height:1
 }
-.sq{
-  width:100%;
-  height:100%;
-  min-width:0;
-  min-height:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  position:relative;
-  overflow:hidden;
-  cursor:pointer;
-  user-select:none;
-  line-height:1;
-}
-.sq.light{background:#eadfc9}
-.sq.dark{background:#718672}
-.sq.sel{outline:5px solid var(--gold);outline-offset:-5px}
-.piece{
-  display:block;
-  width:78%;
-  height:78%;
-  line-height:1;
-  text-align:center;
-  font-size:clamp(26px,6vw,58px);
-  pointer-events:none;
-  filter:drop-shadow(0 1px 1px #0005);
-}
-
-.controls{display:grid;gap:16px}
-.row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.light{background:#eee0c4}.dark{background:#76906f}
+.selected{box-shadow:inset 0 0 0 5px #ffd35a}
+.target::after{content:"";width:20%;height:20%;border-radius:50%;background:#1118;position:absolute}
+.capture::after{content:"";inset:7%;border:5px solid #1118;border-radius:50%;position:absolute}
+.piece{pointer-events:none;max-width:80%;max-height:80%;line-height:1}
+.controls{display:grid;gap:14px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 input[type=range]{width:100%}
-.badge{padding:8px 12px;border-radius:999px;background:#2b313b;font-weight:900}
-.good{background:#183d2b;color:var(--good)}
-.bad{background:#49232b;color:var(--bad)}
-.status{background:#0e1116;border-radius:14px;padding:14px;min-height:105px;line-height:1.5;color:#d4dde7}
-button{border:0;border-radius:13px;padding:12px;background:#38be7c;color:#07140d;font-weight:900;font-size:1rem;cursor:pointer}
-button:hover{filter:brightness(1.08)}
-.small{font-size:.88rem;color:var(--muted);line-height:1.45}
-code{background:#080a0d;padding:2px 6px;border-radius:6px}
-@media(max-width:820px){.grid{grid-template-columns:1fr}}
+button{border:0;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer}
+#reset{background:#69d69a;color:#07130c}
+.status{padding:13px;background:#0d1116;border-radius:12px;min-height:92px;line-height:1.45}
+.badge{padding:6px 10px;border-radius:999px;background:#303844;font-weight:800}
+.good{color:#80e5a8;background:#173728}.bad{color:#ff9eac;background:#44232a}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🐟 Stockfish + Worstfish 🎲</h1>
-  <p class="sub">50% genius. 50% deliberately terrible chess.</p>
-
-  <div class="grid">
-    <div class="card">
-      <div class="board-shell">
-        <div id="board" class="board"></div>
-      </div>
-    </div>
-
-    <div class="card controls">
-      <div>
-        <div class="row">
-          <b>Worstfish probability</b>
-          <b id="chaosLabel">50%</b>
-        </div>
-        <input id="chaos" type="range" min="0" max="100" value="50">
-        <div class="small">0% = normal Stockfish · 50% = original idea · 100% = Anti-Stockfish.</div>
-      </div>
-
-      <div>
-        <div class="row">
-          <b>Search depth</b>
-          <b id="depthLabel">12</b>
-        </div>
-        <input id="depth" type="range" min="5" max="18" value="12">
-      </div>
-
-      <div class="row">
-        <span>Engine mode</span>
-        <span id="mode" class="badge">STARTING</span>
-      </div>
-
-      <div id="status" class="status">
-        Loading Stockfish WASM…
-      </div>
-
-      <button id="newGame">New Game</button>
-
-      <div class="small">
-        Required files in the same folder:
-        <code>stockfish-18-lite-single.js</code> and
-        <code>stockfish-18-lite-single.wasm</code>.
-      </div>
-    </div>
-  </div>
+<main>
+<h1>🐟 Stockfish + Worstfish 🎲</h1>
+<p class="muted">You are White. The engine is either brilliant or catastrophically bad.</p>
+<div class="layout">
+ <section class="panel"><div class="board-wrap"><div id="board"></div></div></section>
+ <section class="panel controls">
+  <div><div class="row"><b>Worstfish chance</b><b id="chanceText">50%</b></div><input id="chance" type="range" min="0" max="100" value="50"></div>
+  <div><div class="row"><b>Depth</b><b id="depthText">10</b></div><input id="depth" type="range" min="5" max="16" value="10"></div>
+  <div class="row"><span>Mode</span><span id="mode" class="badge">LOADING</span></div>
+  <div id="status" class="status">Starting Stockfish…</div>
+  <button id="reset">New Game</button>
+  <div class="muted">Click a piece, then click a highlighted legal destination. Board squares are permanently fixed to an 8×8 grid.</div>
+ </section>
 </div>
-
+</main>
 <script>
-const PIECES={
-  P:"♙",N:"♘",B:"♗",R:"♖",Q:"♕",K:"♔",
-  p:"♟",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"
-};
-
+const PIECE={P:"♙",N:"♘",B:"♗",R:"♖",Q:"♕",K:"♔",p:"♟",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"};
 const START="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const board=document.getElementById("board"), status=document.getElementById("status"), mode=document.getElementById("mode");
+const chance=document.getElementById("chance"), depth=document.getElementById("depth");
+chance.oninput=()=>document.getElementById("chanceText").textContent=chance.value+"%";
+depth.oninput=()=>document.getElementById("depthText").textContent=depth.value;
 
-let fen=START;
-let selected=null;
-let busy=false;
-let engineReady=false;
-let waitingResolve=null;
-let lines=[];
-let moves=[];
-
-const boardEl=document.getElementById("board");
-const statusEl=document.getElementById("status");
-const modeEl=document.getElementById("mode");
-const chaos=document.getElementById("chaos");
-const depth=document.getElementById("depth");
-
-chaos.oninput=()=>document.getElementById("chaosLabel").textContent=chaos.value+"%";
-depth.oninput=()=>document.getElementById("depthLabel").textContent=depth.value;
+let fen=START, selected=null, legal=[], moves=[], ready=false, busy=false;
+let searchResolve=null, searchLines=new Map(), fenResolve=null, legalResolve=null;
+let worker;
 
 function parseFen(f){
-  const rows=f.split(" ")[0].split("/");
-  const out={};
-  for(let r=0;r<8;r++){
-    let file=0;
-    for(const ch of rows[r]){
-      if(/\d/.test(ch)){
-        file+=Number(ch);
-      }else{
-        out[String.fromCharCode(97+file)+(8-r)]=ch;
-        file++;
-      }
-    }
-  }
-  return out;
+ const b={}; let rows=f.split(" ")[0].split("/");
+ rows.forEach((row,r)=>{let file=0; for(const c of row){if(/\d/.test(c)) file+=+c; else {b[String.fromCharCode(97+file)+(8-r)]=c; file++;}}});
+ return b;
 }
-
-function draw(){
-  const pieces=parseFen(fen);
-  boardEl.innerHTML="";
-  for(let rank=8;rank>=1;rank--){
-    for(let file=0;file<8;file++){
-      const coord=String.fromCharCode(97+file)+rank;
-      const sq=document.createElement("div");
-      sq.className="sq "+(((file+rank)%2)?"light":"dark")+(selected===coord?" sel":"");
-
-      const piece=document.createElement("span");
-      piece.className="piece";
-      piece.textContent=PIECES[pieces[coord]]||"";
-      sq.appendChild(piece);
-
-      sq.onclick=()=>clickSquare(coord,pieces[coord]);
-      boardEl.appendChild(sq);
-    }
-  }
+function render(){
+ const b=parseFen(fen); board.innerHTML="";
+ for(let rank=8;rank>=1;rank--) for(let file=0;file<8;file++){
+  const sq=String.fromCharCode(97+file)+rank;
+  const el=document.createElement("div");
+  el.className="square "+(((file+rank)%2)?"light":"dark");
+  if(selected===sq) el.classList.add("selected");
+  const destinations=legal.filter(m=>m.startsWith(selected||"") && m.slice(2,4)===sq);
+  if(destinations.length) el.classList.add(b[sq]?"capture":"target");
+  const sp=document.createElement("span"); sp.className="piece"; sp.textContent=PIECE[b[sq]]||""; el.appendChild(sp);
+  el.addEventListener("click",()=>clickSquare(sq,b[sq]));
+  board.appendChild(el);
+ }
 }
+function send(s){worker.postMessage(s)}
+function setPos(){send(moves.length?"position startpos moves "+moves.join(" "):"position startpos")}
 
-function fenTurn(){
-  return fen.split(" ")[1];
+function requestFen(){
+ return new Promise(resolve=>{fenResolve=resolve; send("d")});
 }
-
-function clickSquare(coord,piece){
-  if(busy||!engineReady||fenTurn()!=="w") return;
-
-  if(!selected){
-    if(piece && piece===piece.toUpperCase()){
-      selected=coord;
-      draw();
-    }
-    return;
-  }
-
-  if(coord===selected){
-    selected=null;
-    draw();
-    return;
-  }
-
-  let move=selected+coord;
-
-  // Auto-queen promotion in this first version.
-  if(selected[1]==="7" && coord[1]==="8"){
-    move+="q";
-  }
-
-  selected=null;
-  playHumanMove(move);
+function requestLegalMoves(){
+ return new Promise(resolve=>{
+  legalResolve=resolve; searchLines.clear(); setPos(); send("go depth 1");
+ });
 }
-
-let worker;
-try{
-  worker=new Worker("./stockfish-18-lite-single.js");
-}catch(err){
-  statusEl.textContent="Could not start Stockfish: "+err.message;
-}
-
-function send(cmd){
-  worker.postMessage(cmd);
-}
-
-worker.onmessage=(e)=>{
-  const msg=typeof e.data==="string" ? e.data : String(e.data);
-
-  if(msg==="uciok"){
-    send("isready");
-  }
-
-  if(msg==="readyok" && !engineReady){
-    engineReady=true;
-    modeEl.textContent="READY";
-    statusEl.textContent="You are White. Click a piece, then click its destination.";
-    draw();
-  }
-
-  if(msg.startsWith("info ") && msg.includes(" multipv ")){
-    const match=msg.match(/multipv (\d+).*?(score (?:cp|mate) -?\d+).*? pv ([a-h][1-8][a-h][1-8][qrbn]?)/);
-    if(match){
-      lines[Number(match[1])-1]={
-        score:match[2],
-        move:match[3]
-      };
-    }
-  }
-
-  if(msg.startsWith("bestmove ") && waitingResolve){
-    const resolve=waitingResolve;
-    waitingResolve=null;
-    resolve();
-  }
-};
-
-send("uci");
-
-function waitForSearch(){
-  return new Promise(resolve=>{
-    waitingResolve=resolve;
-  });
-}
-
-function setPosition(){
-  send("position startpos moves "+moves.join(" "));
-}
-
-async function playHumanMove(move){
-  busy=true;
-  moves.push(move);
-  setPosition();
-  statusEl.textContent="🐟 Thinking…";
-  await playFishMove();
-}
-
-async function playFishMove(){
-  lines=[];
-  setPosition();
-
-  // 218 is at/above the known theoretical maximum legal move count,
-  // so this attempts to retrieve every legal move through MultiPV.
+function searchAll(){
+ return new Promise(resolve=>{
+  searchResolve=resolve; searchLines.clear(); setPos();
   send("setoption name MultiPV value 218");
   send("go depth "+depth.value);
-  await waitForSearch();
-
-  const candidates=lines.filter(Boolean);
-
-  if(!candidates.length){
-    statusEl.textContent="No legal engine candidates returned. The game may be over or the last move may be invalid.";
-    busy=false;
-    return;
-  }
-
-  const useWorst=Math.random() < Number(chaos.value)/100;
-  const chosen=useWorst ? candidates[candidates.length-1] : candidates[0];
-
-  modeEl.textContent=useWorst ? "WORSTFISH" : "STOCKFISH";
-  modeEl.className="badge "+(useWorst ? "bad" : "good");
-
-  moves.push(chosen.move);
-  setPosition();
-
-  // Ask Stockfish to print its current FEN using the diagnostic command "d".
-  let gotFen=false;
-  const previousHandler=worker.onmessage;
-
-  worker.onmessage=(e)=>{
-    const msg=typeof e.data==="string" ? e.data : String(e.data);
-
-    if(msg.startsWith("Fen: ")){
-      fen=msg.slice(5).trim();
-      gotFen=true;
-      worker.onmessage=previousHandler;
-
-      statusEl.innerHTML=
-        (useWorst ? "🎲 <b>WORSTFISH</b>" : "🐟 <b>STOCKFISH</b>")+
-        " played <code>"+chosen.move+"</code><br>"+
-        chosen.score;
-
-      busy=false;
-      draw();
-    }
-
-    previousHandler(e);
-  };
-
-  send("d");
-
-  setTimeout(()=>{
-    if(!gotFen){
-      worker.onmessage=previousHandler;
-      busy=false;
-      statusEl.textContent=
-        "Engine played "+chosen.move+
-        ", but this Stockfish JS build did not return a FEN from the 'd' command.";
-      draw();
-    }
-  },600);
+ });
 }
 
-document.getElementById("newGame").onclick=()=>{
-  moves=[];
-  fen=START;
-  selected=null;
-  busy=false;
-  modeEl.textContent="READY";
-  modeEl.className="badge";
-  statusEl.textContent="New game. You are White.";
-  send("ucinewgame");
-  send("isready");
-  draw();
-};
+try{
+ // IMPORTANT: this exact Stockfish 18 worker expects stockfish.wasm by default.
+ // Passing the WASM URL in the worker hash tells it to use the user's existing filename.
+ const wasmURL=new URL("./stockfish-18-lite-single.wasm",location.href).href;
+ worker=new Worker("./stockfish-18-lite-single.js#"+encodeURIComponent(wasmURL)+",worker");
+ worker.onmessage=e=>{
+  const s=String(e.data);
+  if(s==="uciok"){send("isready");return}
+  if(s==="readyok"&&!ready){
+    ready=true; mode.textContent="READY"; status.textContent="Ready! Click a White piece."; refresh().then(requestLegalMoves); return;
+  }
+  let m=s.match(/^Fen:\s*(.+)$/);
+  if(m&&fenResolve){let r=fenResolve;fenResolve=null;r(m[1]);return}
+  m=s.match(/multipv\s+(\d+).*?\sscore\s+(cp|mate)\s+(-?\d+).*?\spv\s+([a-h][1-8][a-h][1-8][qrbn]?)/);
+  if(m) searchLines.set(+m[1],{move:m[4],scoreType:m[2],score:+m[3]});
+  if(s.startsWith("bestmove ")){
+    if(searchResolve){let r=searchResolve;searchResolve=null;r([...searchLines.entries()].sort((a,b)=>a[0]-b[0]).map(x=>x[1]));}
+    else if(legalResolve){let r=legalResolve;legalResolve=null;r([...searchLines.values()].map(x=>x.move));}
+  }
+ };
+ worker.onerror=e=>{status.textContent="Stockfish failed to load: "+e.message;mode.textContent="ERROR"};
+ send("uci");
+}catch(e){status.textContent="Could not create Stockfish worker: "+e.message;mode.textContent="ERROR"}
 
-draw();
+async function refresh(){
+ setPos(); fen=await requestFen(); render();
+}
+async function updateLegal(){
+ legal=await requestLegalMoves(); render();
+}
+async function clickSquare(sq,p){
+ if(!ready||busy) return;
+ const turn=fen.split(" ")[1]; if(turn!=="w") return;
+ if(!selected){
+  if(p&&p===p.toUpperCase()){selected=sq;await updateLegal();}
+  return;
+ }
+ if(sq===selected){selected=null;legal=[];render();return}
+ let matches=legal.filter(m=>m.startsWith(selected+sq));
+ if(!matches.length){
+  if(p&&p===p.toUpperCase()){selected=sq;await updateLegal()} else {selected=null;render()}
+  return;
+ }
+ let mv=matches.find(x=>x.endsWith("q"))||matches[0];
+ selected=null;legal=[];busy=true;moves.push(mv);await refresh();status.textContent="Engine thinking…";await engineMove();
+}
+async function engineMove(){
+ let candidates=await searchAll();
+ if(!candidates.length){busy=false;status.textContent="Game over.";return}
+ const worst=Math.random()<Number(chance.value)/100;
+ const pick=worst?candidates[candidates.length-1]:candidates[0];
+ mode.textContent=worst?"WORSTFISH":"STOCKFISH";mode.className="badge "+(worst?"bad":"good");
+ moves.push(pick.move);await refresh();busy=false;
+ status.textContent=(worst?"🎲 Worstfish":"🐟 Stockfish")+" played "+pick.move+". Your move.";
+ await updateLegal();
+}
+document.getElementById("reset").onclick=async()=>{
+ if(!ready)return;busy=false;selected=null;legal=[];moves=[];send("stop");send("ucinewgame");setPos();await refresh();await updateLegal();
+ mode.textContent="READY";mode.className="badge";status.textContent="New game. You are White.";
+};
+render();
 </script>
 </body>
 </html>
