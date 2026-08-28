@@ -1,4 +1,4 @@
-# 50% Stockfish + 50% Worstfish v8
+# 95% Stockfish + 5% Worstfish v8
 
 Root files:
 - index.html
