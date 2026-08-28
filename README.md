@@ -1,14 +1,18 @@
-# 50-Stockfish50-WorstfishEngine
+# 50% Stockfish + 50% Worstfish
 
-GitHub Pages version. No folders are required.
+GitHub Pages version — no folders needed.
 
-Repository root:
+Put these files in the repository root:
+
 - index.html
 - stockfish-18-lite-single.js
 - stockfish-18-lite-single.wasm
 - README.md (optional)
 
-IMPORTANT: keep your existing `stockfish-18-lite-single.wasm` unchanged.
-The included index.html explicitly tells the uploaded Stockfish 18 JS worker to load that filename.
+The WASM file stays unchanged.
 
-The board uses a fixed 8x8 CSS grid, so pieces cannot resize the squares.
+This version follows Stockfish.js 18's browser-worker convention and loads:
+`stockfish-18-lite-single.js#./stockfish-18-lite-single.wasm`
+
+The board is a fixed 8×8 CSS grid, so piece content cannot resize or distort squares.
+
