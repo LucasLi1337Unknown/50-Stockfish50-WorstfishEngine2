@@ -1,6 +1,0 @@
-Copy your existing files into this folder without modifying them:
-
-stockfish-18-lite-single.js
-stockfish-18-lite-single.wasm
-
-Then upload all files to the ROOT of your GitHub repository.
